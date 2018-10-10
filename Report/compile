@@ -1,0 +1,7 @@
+#!/bin/bash
+
+pdflatex Report && \
+pdflatex Report && \
+pdflatex Report
+
+rm *.log *.aux *.toc *.bbl *.blg *.out Content/*.aux
