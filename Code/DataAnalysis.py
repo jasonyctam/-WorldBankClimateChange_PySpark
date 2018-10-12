@@ -20,8 +20,6 @@ from pyspark.ml.evaluation import RegressionEvaluator # For evaluating regressio
 from pyspark.ml.regression import DecisionTreeRegressor # For Decision Tree Regression with PySpark
 from pyspark.ml.regression import GBTRegressor # For Gradient Boosted Tree Regression with PySpark
 from pyspark.ml import Pipeline # For using PySpark pipelines
-from pyspark.ml.tuning import ParamGridBuilder # For building parameter grids
-from pyspark.ml.tuning import CrossValidator # For cross validation
 
 ###################################################################
 ###################################################################
@@ -114,19 +112,28 @@ class DataAnalysis():
 
         ### Linear Regression
 
-        # self.FitLinearRegression(trainMLDF, testMLDF)
+        lr_DF = self.FitLinearRegression(trainMLDF, testMLDF)
+        print(lr_DF.head(5))
 
         ## Decision Tree
 
         # Fit with default parameters
-        self.RunDecisionTree(trainMLDF, testMLDF)
+        dt_DF = self.RunDecisionTree(trainMLDF, testMLDF)
+        print(dt_DF.head(5))
 
         ## Gradient Boosted Trees
 
-        self.RunGradientBoostedTree(trainMLDF, testMLDF)
+        gbt_DF = self.RunGradientBoostedTree(trainMLDF, testMLDF)
+        print(gbt_DF.head(5))
+
+        resultsDF = lr_DF.copy()
+        resultsDF['LR_Res'] = lr_DF['prediction'] - lr_DF['atmosphereCO2']
+        resultsDF = resultsDF.drop(['prediction'], axis=1).copy()
+        resultsDF['DT_Res'] = dt_DF['prediction'] - dt_DF['atmosphereCO2']
+        resultsDF['GBT_Res'] = gbt_DF['prediction'] - gbt_DF['atmosphereCO2']
 
 
-
+        self.plotData.plotResultGraph(resultsDF.index.values, [resultsDF['LR_Res'], resultsDF['DT_Res'], resultsDF['GBT_Res']], title="atmosphereCO2 2014", xlabel="Country", ylabel="atmosphereCO2", legendLabel=["LR_test_Residue", "DT_test_Residue", "GBT_test_Residue"], outputFileName="atmosphereCO2_test_residue.png", tilt=False, xTickRotation=30)
 
 
         # self.plotData.plotGraph(combineDF['landForest'], combineDF['atmosphereCO2'], title="atmosphereCO2 VS landForest", xlabel="landForest", ylabel="atmosphereCO2", legendLabel1="Countries", outputFileName="atmosphereCO2_VS_landForest.png", time=False)
@@ -193,10 +200,10 @@ class DataAnalysis():
         print("RMSE: %f" % trainingSummary.rootMeanSquaredError)
         print("r2: %f" % trainingSummary.r2)
 
-        trainMLDF.describe().show()
+        # trainMLDF.describe().show()
 
         lr_predictions = lr_model.transform(testMLDF)
-        # lr_predictions.select("prediction","atmosphereCO2","features").show(5)
+        lr_predictions.select("prediction","atmosphereCO2","features").show(5)
         lr_evaluator = RegressionEvaluator(predictionCol="prediction", labelCol="atmosphereCO2",metricName="r2")
         print("R Squared (R2) on test data = %g" % lr_evaluator.evaluate(lr_predictions))
 
@@ -210,18 +217,27 @@ class DataAnalysis():
         # predictions = lr_model.transform(testMLDF)
         # predictions.select("prediction","atmosphereCO2","features").show()
 
-        return
+        return lr_predictions.toPandas()
 
 ###################################################################
 ###################################################################
 
     def RunDecisionTree(self, trainMLDF, testMLDF):
 
-        self.FitDecisionTree(trainMLDF, testMLDF)
+        deafultDF = self.FitDecisionTree(trainMLDF, testMLDF)
 
-        dt_maxDepth_array = [10,20,30]
-        dt_maxBins_array = [32,34,36]
-        dt_minInstancesPerNode_array = [1,2,3]
+        # Best parameters after running the following
+        # 1	20	36	37946.8129595073
+        # [minInstancesPerNode, maxDepth, maxBins, dt_rmse]
+
+        dt_maxDepth_array = [20]
+        dt_maxBins_array = [36]
+        dt_minInstancesPerNode_array = [1]
+
+        # Swap for these to running the hyper-parameter search again
+        # dt_maxDepth_array = [10,20,30]
+        # dt_maxBins_array = [32,34,36]
+        # dt_minInstancesPerNode_array = [1,2,3]
 
         dt_results_array = [] # minInstancesPerNode, maxDepth, maxBins, rmse
 
@@ -238,7 +254,9 @@ class DataAnalysis():
                         "minInstancesPerNode":dt_minInstancesPerNode
                     }
 
-                    dt_results_array.append(self.FitDecisionTree(trainMLDF, testMLDF, dt_params))
+                    dt_results, dt_DF = self.FitDecisionTree(trainMLDF, testMLDF, dt_params)
+
+                    dt_results_array.append(dt_results)
 
                     del dt_maxDepth
                     del dt_maxBins
@@ -248,7 +266,7 @@ class DataAnalysis():
         for i in range(0,len(dt_results_array)):
             print(dt_results_array[i])
 
-        return
+        return dt_DF
 
 
 ###################################################################
@@ -307,7 +325,7 @@ class DataAnalysis():
         # for row in selected.collect():
         #     print(row)
 
-        return [minInstancesPerNode, maxDepth, maxBins, dt_rmse]
+        return [minInstancesPerNode, maxDepth, maxBins, dt_rmse], dt_predictions.toPandas()
 
 ###################################################################
 ###################################################################
@@ -318,16 +336,25 @@ class DataAnalysis():
 
         # Best parameters after running the following
         # 1	10	36	25	0.05	1	37921.1148178837
-
         # [minInstancesPerNode, maxDepth, maxBins, maxIter, stepSize, subsamplingRate, gbt_rmse]
 
-        gbt_maxDepth_array = [10]
-        gbt_maxBins_array = [36]
+        # Deafault
+        gbt_maxDepth_array = [5]
+        gbt_maxBins_array = [32]
         gbt_minInstancesPerNode_array = [1]
-        gbt_maxIter_array = [25]
-        gbt_stepSize_array = [0.05]
+        gbt_maxIter_array = [20]
+        gbt_stepSize_array = [0.1]
         gbt_subsamplingRate_array = [1.0]
 
+        # Optimal
+        # gbt_maxDepth_array = [10]
+        # gbt_maxBins_array = [36]
+        # gbt_minInstancesPerNode_array = [1]
+        # gbt_maxIter_array = [25]
+        # gbt_stepSize_array = [0.05]
+        # gbt_subsamplingRate_array = [1.0]
+
+        # Swap for these to running the hyper-parameter search again
         # gbt_maxDepth_array = [10,20,30]
         # gbt_maxBins_array = [32,34,36]
         # gbt_minInstancesPerNode_array = [1,2,3]
@@ -359,7 +386,8 @@ class DataAnalysis():
                                     "subsamplingRate":gbt_subsamplingRate
                                 }
 
-                                gbt_results_array.append(self.FitGradientBoostedTree(trainMLDF, testMLDF, gbt_params))
+                                gbt_results, gbt_DF = self.FitGradientBoostedTree(trainMLDF, testMLDF, gbt_params)
+                                gbt_results_array.append(gbt_results)
 
                                 del gbt_maxDepth
                                 del gbt_maxBins
@@ -372,7 +400,7 @@ class DataAnalysis():
         for i in range(0,len(gbt_results_array)):
             print(gbt_results_array[i])
 
-        return
+        return gbt_DF
 
 ###################################################################
 ###################################################################
@@ -428,7 +456,7 @@ class DataAnalysis():
         gbt_rmse = gbt_evaluator.evaluate(gbt_predictions)
         print("Gradient Boosted Trees Root Mean Squared Error (RMSE) on test data = %g" % gbt_rmse)
 
-        return [minInstancesPerNode, maxDepth, maxBins, maxIter, stepSize, subsamplingRate, gbt_rmse]
+        return [minInstancesPerNode, maxDepth, maxBins, maxIter, stepSize, subsamplingRate, gbt_rmse], gbt_predictions.toPandas()
 
 ###################################################################
 ###################################################################

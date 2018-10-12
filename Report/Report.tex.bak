@@ -128,7 +128,7 @@ While the actions to counter the effects of climate change may be categorized un
 
 \blankline
 
-Emissions of carbon dioxide (CO2) has been identified as one of the main drivers of climate change. Modernization via industrialization has dramatically improved the quality of life in many countries in the last century, with CO2 being linked closely as a bi-product. Identifying countries with relatively low emissions while maintaining decent economy would act as a good starting point for this study, which would assist in identifying effective approaches in various aspects such as recycling and the use of environmentally sustainable energy sources that can be used as examples for other counties. This studies aims to determine if there is a general relationship between the CO$_{2}$ emissions and the other relevant quantities including forest area percentage, total and urban population, as well as Gross Domestic Product (GDP) data of the countries listed. The obtained results may help to indicate if on optimal balance of these quantities exist to produce a thriving economy while maintaining low CO$_{2}$ emissions.
+Emissions of carbon dioxide (CO2) has been identified as one of the main drivers of climate change. Modernization via industrialization has dramatically improved the quality of life in many countries in the last century, with CO2 being linked closely as a biproduct. Identifying countries with relatively low emissions while maintaining decent economy would act as a good starting point for this study, which would assist in identifying effective approaches in various aspects such as recycling and the use of environmentally sustainable energy sources that can be used as examples for other counties. This studies aims to determine if there is a general relationship between the CO$_{2}$ emmissions and the other relevant quantities including forest area percentage, total and urban population, as well as Gross Domestic Product (GDP) data of the countries listed. The obtained results may help to indicate if on optimal balance of these quantities exist to produce a thriving economy while maintaining low CO$_{2}$ emmissions.
 
 \blankline
 
@@ -167,14 +167,14 @@ The \href{https://www.worldbank.org/}{World Bank} contains comprehensive data se
     \item{Total population}
     \item{Urban population as a percentage of total}
     \item{Forest area as a percentage of total land area}
-    \item{CO$_2$ emissions (tonnes)}
+    \item{CO$_2$ emmissions (tonnes)}
 \end{itemize}
 
-The available data for each of the variables are presented as annual figures from 1960 to 2017, for a list of "countries" that are listed in \texttt{countryTypeDict.txt} in the \textit{Code} directory. The data for each year is presented in columns, while each of the "countries" in the list occupies a row. This list of "countries" contain all countries that are recognized by the United Nations, as well as entries that represent a group of countries that share some common attributes, such as \texttt{Central Europe and the Baltic's} and \texttt{Caribbean small states}. These group entries are excluded from this analysis to avoid the overlap of statistics.
+The available data for each of the variables are presented as annual figures from 1960 to 2017, for a list of "countries" that are listed in \texttt{countryTypeDict.txt} in the \textit{Code} directory. The data for each year is presented in columns, while each of the "countries" in the list occupies a row. This list of "countries" contain all countries that are recognized by the United Nations, as well as entries that represent a group of countries that share some common attributes, such as \texttt{Central Europe and the Baltics} and \texttt{Caribbean small states}. These group entries are exluded from this analysis to avoid the overlap of statistics.
 
 \blankline
 
-\href{https://www.python.org/}{Python} and associated open source libraries such as \href{https://pandas.pydata.org/}{Pandas} are used in this instance for the analysis. The python codes that have been written for this analysis are stored in the \textit{Code} directory. Written functions are split accordingly into four different files:
+\href{https://www.python.org/}{Python} and associated open source libraries such as \href{https://pandas.pydata.org/}{Pandas} are used in this instance for the analysis. The python codes that have been written for this analysis are stored in the \textit{Code} directory. Written functions are splitaccordingly into four different files:
 
 \begin{itemize}
     \item \texttt{DataAnalysis.py} - Main executing code.
@@ -191,7 +191,7 @@ While some of the datasets are complete up to the year 2017, others such as fore
 
 \section{Data Preparation}
 
-The listed countries are arranged in rows of the dataframe. Names and codes for each of them are provided as columns, as well as the name and code for the data variable. Yearly value of the variable for each year is arranged in a separate column, with the value associated to the respective country at each row. The full list of 'countries' provided in all of the CSV files are identical, which some entries are group entities with definitions that includes multiple nations. A Python dictionary was created to differentiate the standalone nations from the group entities, which is stored in the \texttt{countryTypeDict.txt} file in the same directory. It is loaded into the code through the \texttt{DFFunctions.py} class. After filtering out the group entities, there are 216 entries remaining as standalone 'countries'. Closer inspections has revealed some of the entries are independent territories of a bigger nation such as \textit{Hong Kong SAR}, which explains the 216 entries of 'countries' while there are only 195 officially recognized by the \href{http://www.un.org/en/index.html}{United Nations}.
+The listed countries are arranged in rows of the dataframe. Names and codes for each of them are provided as columns, as well as the name and code for the data variable. Yearly value of the variable for each year is arranged in a separate column, with the value associated to the respective country at each row. The full list of 'countries' provided in all of the CSV files are identical, which some entries are group entities with definitions that includes multiple nations. A Python dictionary was created to differentiate the standalone nations from the group entities, which is stored in the \texttt{countryTypeDict.txt} file in the same directory. It is loaded into the code through the \texttt{DFFunctions.py} class. After filtering out the group entities, there are 216 entries remaining as standalone 'countries'. Closer inspections has revealed some of the entries are inpedendent territories of a bigger nation such as \textit{Hong Kong SAR}, which explains the 216 entries of 'countries' while there are only 195 officialy recognized by the \href{http://www.un.org/en/index.html}{United Nations}.
 
 \blankline
 
@@ -324,7 +324,7 @@ test_target = pd.DataFrame({'atmosphereCO2':testDF['atmosphereCO2']})
 
 \blankline
 
-Tools from PySpark were used to transform dataframes further for compatibility with modelling functions from PySpark's machine learning library \texttt{MLlib}. \texttt{VectorAssembler} was used to convert the values from each of the predictors from each row into a single vector, which is stored as the value of each cell in a standalone dataframe column, \texttt{"features"} in this case. The resulting dataframe for input contains only this \texttt{features} column and the target column of \texttt{atmosphereCO2}. 
+Tools from PySpark were used to transform dataframes further for compatibility with modelling functions from PySpark's machine learning library \texttt{MLlib}. \texttt{VectorAssembler} was used to convert the values from each of the predictors from each row into a single vector, which is stored as the value of each cell in a standalone dataframe column, \texttt{"features"} in this case. The resulting dataframe for input contains only this \texttt{features} coCountryTypelumn and the target column of \texttt{atmosphereCO2}. 
 
 \begin{verbatim}
 # Use Vector Assembler to prepare a DF for ML functions
@@ -345,7 +345,7 @@ These basic transformations of the data set can be served as input to multiple a
 
 \section{Data-mining Algorithms and Methods Selection}
 
-This analysis with a target prediction quantity of CO$_{2}$ emissions and several predictors such as GDP and population data falls under the \textbf{Supervised Learning} category of the machine learning domain. \textbf{Linear Regression} is a traditional statistical approach under this domain, which attempts to establish a linear relationship between the predictors and the target variable. \textbf{Decision Tree} and \textbf{Gradient Boosted Tree} are machine learning methods that are well known for their abilities in prediction models, which the model is built in general by recursively partitioning the data in a branching out tree manner using different attributes of the data, and the tree structure obtained in the end is used as a prediction model for new data input. These three approaches were performed and their results are used to determine which of them provides the highest level of accuracy for this data set.
+This analysis with a target predition quantity of CO$_{2}$ emissions and several predictors such as GDP and population data falls under the \textbf{Supervised Learning} category of the machine learning domain. \textbf{Linear Regression} is a traditional statistical approach under this domain, which attempts to establish a linear relationship between the predictors and the target variable. \textbf{Decision Tree} and \textbf{Gradient Boosted Tree} are machine learning methods that are well known for their abilities in prediction models, which the model is built in general by recursively partitioning the data in a branching out tree manner using different attributes of the data, and the tree structure obtained in the end is used as a prediction model for new data input. These three approaches were performed and their results are used to determine which of them provides the highest level of accuracy for this dataset.
 
 \section{Data Mining}
 
@@ -416,7 +416,7 @@ The coefficients for each of the predictors are presented in the following table
 
 With an $R^{2}$ values of 0.845, the results suggests reasonable validity of the coefficients obtained. It is not surprising to find such a big negative correlation (-248.349) for forest percentage of the total land area, and and a reasonable relationship with the urban percentage of the total population. It is however a little interesting to find almost no correlation between the amount of CO2 emissions and total population as well as GDP.
 
-The performance of the obtained linear regression model on the test data set is as follows:
+The performace of the obtained linear regression model on the test data set is as follows:
 
 \begin{verbatim}
 R Squared (R2) on test data = 0.857565
@@ -656,7 +656,7 @@ Surprisingly, this resulted RMSE value of 37921.1 is higher than the value of 29
 
 \section{Interpretation}
 
-Figure \ref{fig:atmosphereCO2_test_residue} shows the comparison of results between the two approaches, it is a plot of residues on the test data set between the values predicted by respective models and the actual data values. The x axis displays the indices of all of the countries to avoid confusion, and it can be observed that in general the predicted values from the trained Decision Tree and Gradient Boosted Tree models are closer to the actual values compared to the linear regression approach.
+Figure \ref{fig:atmosphereCO2_test_residue} shows the comparison of results between the two approaches, it is a plot of residues on the test data set between the values predicted by respective models and the actual data values. The x axis displays the indicies of all of the countries to avoid confusion, and it can be observed that in general the predicted values from the trained Decision Tree and Gradient Boosted Tree models are closer to the actual values compared to the linear regression approach.
 
 \begin{figure}[!htbp]
     \begin{center}
@@ -679,11 +679,11 @@ A summary of performance comparison between the tested models are presented in T
         Gradient Boosted Tree & 29239.1 \\
         \hline
         \end{tabular}
-        \caption{Comparison of model performance using Root Mean Squared Error}
+        \caption{Comparision of model performance using Root Mean Squared Error}
         \label{PerformanceComp}
     \end{center}
 \end{table}
 
-This comparison of performance shows the both of the machine learning methods produce predictions that are more accurate than the linear regression method by an order of magnitude, while Gradient Boosted Tree, provide the most accurate prediction out of all three. Following on from this work, more models such as Neural Networks or XGBoost can be examined to determine whether a more precise prediction can be obtained, as well as attempting to drop some predictors in the linear regression approach to see if it can perform better.
+This comparison of performance shows the both of the machine learning methods produce predictions that are more accurate than the linear regression mehod by an order of magnitude, while Gradient Boosted Tree, provide the most accurate prediciton out of all three. Following on from this work, more models such as Neural Networks or XGBoost can be examined to determine whether a more precise prediction can be obtained, as well as attempting to drop some predictors in the linear regression approach to see if it can perform better.
 
 \end{document}

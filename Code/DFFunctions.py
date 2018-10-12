@@ -28,10 +28,8 @@ class DFFunctions():
 
     def getCSVDF(self, csv, skiprow=0):
 
-        ## This function loads the csv files into dataframes, and converts the values in the respective time columns into datetime formats
-
-        ## lists timeCol and timeFormat must have the same length
-
+        ## This function loads the csv files into dataframes
+        
         outDF = pd.read_csv(csv, skiprows=skiprow)
         outDF = self.getCountryTypeCol(outDF)
        
@@ -41,8 +39,6 @@ class DFFunctions():
 ###################################################################
 
     def getCountryTypeCol(self, inDF):
-
-        ## This function loads the csv files into dataframes, and converts the values in the respective time columns into datetime formats
 
         outDF = inDF.copy()
 
@@ -55,8 +51,6 @@ class DFFunctions():
 
 
     def setupAnalysisDF(self, inDF, filter=True, countryType='Country'):
-
-        ## This function loads the csv files into dataframes, and converts the values in the respective time columns into datetime formats
 
         outDF = inDF.copy()
 
