@@ -100,7 +100,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \title{\blue INFOSYS 722 \\
 Data Mining and Big Data \\
-\blueb Iteration $III$}
+\blueb Iteration $IV$}
 \author{Jason Tam}
 \date{\today}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -137,11 +137,21 @@ Emissions of carbon dioxide (CO2) has been identified as one of the main drivers
 
 \blankline
 
-The \href{https://www.worldbank.org/}{World Bank} contains comprehensive data sets on various macro-economic variables for a list of countries that are available for download. Historical data for some more developed countries is available further back in time compared to the others, while otherwise being reasonably comprehensive and complete. Global data of relevant variables such as population, urban population, CO2 emission, Gross Domestic Product (GDP) and forest area were obtained from the website, and each of them were available in independent comma separated (CSV) files with a common structure. \href{https://www.python.org/}{Python} and associated open source libraries such as \href{https://pandas.pydata.org/}{Pandas} are used in this instance for the analysis.
+The \href{https://www.worldbank.org/}{World Bank} contains comprehensive data sets on various macro-economic variables for a list of countries that are available for download. Historical data for some more developed countries is available further back in time compared to the others, while otherwise being reasonably comprehensive and complete. Global data of relevant variables such as population, urban population, CO2 emission, Gross Domestic Product (GDP) and forest area were obtained from the website, and each of them were available in independent comma separated (CSV) files with a common structure. Five CSV files where downloaded under the 'Climate Change' category under the \href{https://data.worldbank.org/indicator}{World Development Indicators} section of the World Bank website, which contains time series data for each of the following variables:
+
+\begin{itemize}
+    \item{Gross Domestic Product (GDP)}
+    \item{Total population}
+    \item{Urban population as a percentage of total}
+    \item{Forest area as a percentage of total land area}
+    \item{CO$_2$ emmissions (tonnes)}
+\end{itemize}
 
 \blankline
 
-The python codes that have been written for this analysis are stored in the \textit{Code} directory. Written functions are splitaccordingly into four different files:
+The available data for each of the variables are presented as annual figures from 1960 to 2017, for a list of "countries" that are listed in \texttt{countryTypeDict.txt} in the \textit{Code} directory. The data for each year is presented in columns, while each of the "countries" in the list occupies a row. This list of "countries" contain all countries that are recognized by the United Nations, as well as entries that represent a group of countries that share some common attributes, such as \texttt{Central Europe and the Baltics} and \texttt{Caribbean small states}. These group entries are exluded from this analysis to avoid the overlap of statistics.
+
+\href{https://www.python.org/}{Python} and associated open source libraries such as \href{https://pandas.pydata.org/}{Pandas} are used in this instance for the analysis. The python codes that have been written for this analysis are stored in the \textit{Code} directory. Written functions are splitaccordingly into four different files:
 
 \begin{itemize}
     \item \texttt{DataAnalysis.py} - Main executing code.
@@ -152,7 +162,7 @@ The python codes that have been written for this analysis are stored in the \tex
 
 These CSV files are loaded into dataframe objects with the \texttt{getCSVDF} function in \texttt{FitFunctions.py}. Dataframe objects are common in analysis work with programming languages such as \href{https://www.r-project.org/}{\texttt{R}} and Python, as they are much like ordinary tables that stores structured data in the rows and columns format, with capabilities of joining to other dataframes in multiple ways that are analogous to tables in relational databases. In Python they are loaded from the Pandas library, which also contains many associated functions that are useful in manipulating the dataframes during the analysis process. 
 
-While some of the datasets are complete up to the year 2017, others such as forest land percentage and CO$_{2}$ emissions only have complete data up to 2013. As the scope of this analysis does not require a time-dependent element, the data from the year 2013 will be used to train the models, while the 2014 set will be used to test the model.
+While some of the datasets are complete up to the year 2017, others such as forest land percentage and CO$_{2}$ emissions only have complete data up to 2014. Data in the years beyond 2014 are missing for some countries, particularly the smaller states. As the scope of this analysis does not require a time-dependent element, the data from the year 2013 will be used to train the models, while the 2014 set will be used to evaluate the model.
 
 \section{Data Preparation}
 

@@ -8,15 +8,20 @@ import plotAnalysis as plotMethods
 import datetime as dt
 import numpy as np
 
-from sklearn import datasets, linear_model
+import pyspark
 import statsmodels.api as sm
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import RandomizedSearchCV
-from sklearn.model_selection import GridSearchCV
 
-from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPRegressor
+from pyspark import SparkContext # For converting pandas dataframe to pyspark dataframe
+from pyspark.sql import SQLContext # For converting pandas dataframe to pyspark dataframe
 
+from pyspark.ml.feature import VectorAssembler # For preparing a DF in a format for ML functions input
+from pyspark.ml.regression import LinearRegression # For Linear Regression with PySpark
+from pyspark.ml.evaluation import RegressionEvaluator # For evaluating regression model predictions
+from pyspark.ml.regression import DecisionTreeRegressor # For Decision Tree Regression with PySpark
+from pyspark.ml.regression import GBTRegressor # For Gradient Boosted Tree Regression with PySpark
+from pyspark.ml import Pipeline # For using PySpark pipelines
+from pyspark.ml.tuning import ParamGridBuilder # For building parameter grids
+from pyspark.ml.tuning import CrossValidator # For cross validation
 
 ###################################################################
 ###################################################################
@@ -44,6 +49,9 @@ class DataAnalysis():
         self.DFFunc = DFFuncs.DFFunctions()
         self.FitFunc = FitFuncs.FitFunctions()
 
+        self.sc = SparkContext("local", "App Name")
+        self.sql = SQLContext(self.sc)
+
         return
 
 ###################################################################
@@ -56,14 +64,6 @@ class DataAnalysis():
         self.GDP_DF = self.DFFunc.getCSVDF(csv=self.dataDir+'API_NY.GDP.MKTP.CD_DS2_en_csv_v2_10051799.csv', skiprow=4)
         self.populationTotal_DF = self.DFFunc.getCSVDF(csv=self.dataDir+'API_SP.POP.TOTL_DS2_en_csv_v2_10058048.csv', skiprow=4)
         self.populationUrban_DF = self.DFFunc.getCSVDF(csv=self.dataDir+'API_SP.URB.TOTL.IN.ZS_DS2_en_csv_v2_10034507.csv', skiprow=4)
-
-        # print(self.landForest_DF.tail(5))
-        # print(self.atmosphereCO2_DF.tail(5))
-        # print(self.GDP_DF.tail(5))
-        # print(self.populationTotal_DF.tail(5))
-        # print(self.populationUrban_DF.tail(5))
-
-        # print(self.populationUrban_DF.shape)
 
         dfList = [self.landForest_DF, self.atmosphereCO2_DF, self.GDP_DF, self.populationTotal_DF, self.populationUrban_DF]
         dfColumnHeaders = ['landForest', 'atmosphereCO2', 'GDP', 'populationTotal', 'populationUrban']
@@ -78,101 +78,56 @@ class DataAnalysis():
             testSetupDF[dfColumnHeaders[i]] = tempDF['2014']
 
         trainDF = self.DFFunc.setupAnalysisDF(trainSetupDF)
-        # trainDF = self.DFFunc.setupAnalysisDF(trainSetupDF, countryType='Group')
-        print(trainDF.shape)
-        print(trainDF.tail(5))
 
         testDF = self.DFFunc.setupAnalysisDF(testSetupDF)
 
-        train_predictors = trainDF.drop(['atmosphereCO2', 'CountryType', 'Country'], axis=1).copy()
-        train_target = pd.DataFrame({'atmosphereCO2':trainDF['atmosphereCO2']})
+        # train_predictors_DF = trainDF.drop(['atmosphereCO2', 'CountryType', 'Country'], axis=1).copy()
+        # train_target_DF = pd.DataFrame({'atmosphereCO2':trainDF['atmosphereCO2']})
 
-        test_predictors = testDF.drop(['atmosphereCO2', 'CountryType', 'Country'], axis=1).copy()
-        test_target = pd.DataFrame({'atmosphereCO2':testDF['atmosphereCO2']})
+        # test_predictors_DF = testDF.drop(['atmosphereCO2', 'CountryType', 'Country'], axis=1).copy()
+        # test_target_DF = pd.DataFrame({'atmosphereCO2':testDF['atmosphereCO2']})
+
+        # train_predictors = self.sql.createDataFrame(train_predictors_DF)
+        # train_target = self.sql.createDataFrame(train_target_DF)
+
+        # test_predictors = self.sql.createDataFrame(test_predictors_DF)
+        # test_target = self.sql.createDataFrame(test_target_DF)
+
+        # train_predictors.show()
+        # train_target.show()
+        # test_predictors.show()
+        # test_target.show()
+
+        # Use Vector Assembler to prepare a DF for ML functions
+
+        train_DF = self.sql.createDataFrame(trainDF)
+        test_DF = self.sql.createDataFrame(testDF)
+
+        vectorAssembler = VectorAssembler(inputCols = ['landForest', 'populationTotal', 'GDP', 'populationUrban'], outputCol = 'features')
+        trainMLDF = vectorAssembler.transform(train_DF)
+        trainMLDF = trainMLDF.select(['features', 'atmosphereCO2'])
+        # trainMLDF.show(3)
+
+        testMLDF = vectorAssembler.transform(test_DF)
+        testMLDF = testMLDF.select(['features', 'atmosphereCO2'])
+        # trainMLDF.show(3)
 
         ### Linear Regression
 
-        # with sklearn
-        # regr = linear_model.LinearRegression()
-        # regr.fit(X, Y)
+        # self.FitLinearRegression(trainMLDF, testMLDF)
 
-        # print('Intercept: \n', regr.intercept_)
-        # print('Coefficients: \n', regr.coef_)
+        ## Decision Tree
 
-        # with statsmodels
-        train_predictors = sm.add_constant(train_predictors) # adding a constant
-        test_predictors = sm.add_constant(test_predictors) # adding a constant
-        
-        LR_model = sm.OLS(train_target, train_predictors).fit()
-        LR_train_predictions = LR_model.predict(train_predictors)
+        # Fit with default parameters
+        self.RunDecisionTree(trainMLDF, testMLDF)
 
-        resultsTrainDF = train_target.copy()
-        resultsTrainDF['LR_train_Predictions'] = LR_train_predictions
-        resultsTrainDF['LR_train_Residue'] = resultsTrainDF['LR_train_Predictions'] - resultsTrainDF['atmosphereCO2']
+        ## Gradient Boosted Trees
 
-        LR_test_predictions = LR_model.predict(test_predictors)
-
-        resultsTestDF = test_target.copy()
-        resultsTestDF['LR_test_Predictions'] = LR_test_predictions
-        resultsTestDF['LR_test_Residue'] = resultsTestDF['LR_test_Predictions'] - resultsTestDF['atmosphereCO2']
-
-        LR_print_model = LR_model.summary()
-        print(LR_print_model)
-
-        ### Random Forest
-
-        # self.FitRandomForest(train_predictors, test_predictors, train_target, test_target)
-
-        # rf = best_grid
-
-        # ### Neural Network
-
-        # self.FitNeuralNetwork(train_predictors, test_predictors, train_target, test_target)
-
-        # ### Ensemble Decision Trees
-
-        # ### XGBoost
-
-        # # Use the forest's predict method on the test data
-        # RF_train_predictions = rf.predict(train_predictors)
-        # RF_test_predictions = rf.predict(test_predictors)
-
-        # resultsTrainDF['RF_train_Predictions'] = RF_train_predictions
-        # resultsTrainDF['RF_train_Residue'] = resultsTrainDF['RF_train_Predictions'] - resultsTrainDF['atmosphereCO2']
+        self.RunGradientBoostedTree(trainMLDF, testMLDF)
 
 
-        # resultsTestDF['RF_test_Predictions'] = RF_test_predictions
-        # resultsTestDF['RF_test_Residue'] = resultsTestDF['RF_test_Predictions'] - resultsTestDF['atmosphereCO2']
 
-        # # # Calculate the absolute errors
-        # # errors = abs(predictions - test_labels)
-        # LR_errors = abs(resultsTestDF['LR_test_Residue'])
-        # RF_errors = abs(resultsTestDF['RF_test_Residue'])
-        # # # Print out the mean absolute error (mae)
-        # print('Mean Absolute Error (Linear Regression):', round(abs(resultsTestDF['LR_test_Residue']).mean(), 2), '.')
-        # print('Mean Absolute Error (Random Forest):', round(abs(resultsTestDF['RF_test_Residue']).mean(), 2), '.')
-        # # Mean Absolute Error: 3.83 degrees.
-        # # # Calculate mean absolute percentage error (MAPE)
-        # # mape = 100 * (errors / test_labels)
-        # LR_mape = 100 * (LR_errors / resultsTestDF['atmosphereCO2'])
-        # RF_mape = 100 * (RF_errors / resultsTestDF['atmosphereCO2'])
-        # # # Calculate and display accuracy
-        # # accuracy = 100 - np.mean(mape)
-        # LR_accuracy = 100 - LR_mape.mean()
-        # RF_accuracy = 100 - RF_mape.mean()
-        # print('Accuracy (Linear Regression):', round(LR_accuracy, 2), '%.')
-        # print('Accuracy (Random Forest):', round(RF_accuracy, 2), '%.')
-        # Accuracy: 93.99 %.
 
-        # print(len(self.landForest_DF['Country Name'].unique()))
-        # print(len(self.atmosphereCO2_DF['Country Name'].unique()))
-        # print(len(self.GDP_DF['Country Name'].unique()))
-        # print(len(self.populationTotal_DF['Country Name'].unique()))
-        # print(len(self.populationUrban_DF['Country Name'].unique()))
-
-        # print(self.landForest_DF['2017'])
-
-        # self.plotData.plotPairsDF(combineDF)
 
         # self.plotData.plotGraph(combineDF['landForest'], combineDF['atmosphereCO2'], title="atmosphereCO2 VS landForest", xlabel="landForest", ylabel="atmosphereCO2", legendLabel1="Countries", outputFileName="atmosphereCO2_VS_landForest.png", time=False)
 
@@ -186,13 +141,13 @@ class DataAnalysis():
 
         # self.plotData.plotBarGraph(self.GDP_DF['Country Name'], self.GDP_DF['2017'], title="GDP 2017", xlabel="Country", ylabel="GDP", legendLabel1="GDP 2017", outputFileName="GDP_2017.png", tilt=self.tiltBool, xTickRotation=self.rotation)
 
-        landForest_DF = self.landForest_DF[self.landForest_DF['CountryType']=='Country'].copy()
-        atmosphereCO2_DF = self.atmosphereCO2_DF[self.atmosphereCO2_DF['CountryType']=='Country'].copy()
-        GDP_DF = self.GDP_DF[self.GDP_DF['CountryType']=='Country'].copy()
-        populationTotal_DF = self.populationTotal_DF[self.populationTotal_DF['CountryType']=='Country'].copy()
-        populationUrban_DF = self.populationUrban_DF[self.populationUrban_DF['CountryType']=='Country'].copy()
+        # landForest_DF = self.landForest_DF[self.landForest_DF['CountryType']=='Country'].copy()
+        # atmosphereCO2_DF = self.atmosphereCO2_DF[self.atmosphereCO2_DF['CountryType']=='Country'].copy()
+        # GDP_DF = self.GDP_DF[self.GDP_DF['CountryType']=='Country'].copy()
+        # populationTotal_DF = self.populationTotal_DF[self.populationTotal_DF['CountryType']=='Country'].copy()
+        # populationUrban_DF = self.populationUrban_DF[self.populationUrban_DF['CountryType']=='Country'].copy()
 
-        self.plotData.plotParallelCoordinateGraph(trainDF, title="Parallel Coordinates Graph", xlabel="Quantities", ylabel="Countries")
+        # self.plotData.plotParallelCoordinateGraph(trainDF, title="Parallel Coordinates Graph", xlabel="Quantities", ylabel="Countries")
 
         ###################################################################
 
@@ -218,100 +173,265 @@ class DataAnalysis():
 
         # self.plotData.plotBarGraph(populationUrban_DF['Country Name'], populationUrban_DF['2013'], title="Urban Population 2013", xlabel="Country", ylabel="Urban Population", legendLabel1="Urban Population 2013", outputFileName="populationUrban_2013_bottom.png", tilt=self.tiltBool, xTickRotation=self.rotation, bottom=True)
 
-        plt.show()
+        # plt.show()
 
         return
 
 ###################################################################
 ###################################################################
 
-    def FitNeuralNetwork(self, train_predictors, test_predictors, train_target, test_target):
+    def FitLinearRegression(self, trainMLDF, testMLDF):
 
-        scaler = StandardScaler()
-        # Fit only to the training data
-        scaler.fit(train_predictors)
+        print("Running Linear Regression.....")
 
-        # Now apply the transformations to the data:
-        # train_predictors = scaler.transform(train_predictors)
-        # test_predictors = scaler.transform(test_predictors)
+        lr = LinearRegression(featuresCol = 'features', labelCol='atmosphereCO2', maxIter=100, regParam=0.3, elasticNetParam=0.8)
+        lr_model = lr.fit(trainMLDF)
+        print("Coefficients: " + str(lr_model.coefficients))
+        print("Intercept: " + str(lr_model.intercept))
 
-        # mlp = MLPRegressor(hidden_layer_sizes=(30,30,30))
-        # mlp = MLPRegressor()
-        # mlp.fit(train_predictors,train_target.values.ravel())
+        trainingSummary = lr_model.summary
+        print("RMSE: %f" % trainingSummary.rootMeanSquaredError)
+        print("r2: %f" % trainingSummary.r2)
 
-        mlp = self.FitFunc.FitNeuralNetwork(train_predictors=train_predictors, train_target=train_target, searchType="Random")
+        trainMLDF.describe().show()
 
-        NN_accuracy = self.FitFunc.evaluate(mlp, test_predictors, test_target.values.ravel())
+        lr_predictions = lr_model.transform(testMLDF)
+        # lr_predictions.select("prediction","atmosphereCO2","features").show(5)
+        lr_evaluator = RegressionEvaluator(predictionCol="prediction", labelCol="atmosphereCO2",metricName="r2")
+        print("R Squared (R2) on test data = %g" % lr_evaluator.evaluate(lr_predictions))
 
-        return
+        test_result = lr_model.evaluate(testMLDF)
+        print("Linear Regression Root Mean Squared Error (RMSE) on test data = %g" % test_result.rootMeanSquaredError)
 
-###################################################################
-###################################################################
+        print("numIterations: %d" % trainingSummary.totalIterations)
+        print("objectiveHistory: %s" % str(trainingSummary.objectiveHistory))
+        # trainingSummary.residuals.show()
 
-    def FitRandomForest(self, train_predictors, test_predictors, train_target, test_target):
-
-        ## Fine tune hyperparameters with Randomized Search
-
-        # Number of trees in random forest
-        n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
-
-        # Number of features to consider at every split
-        max_features = ['auto', 'sqrt']
-
-        # Maximum number of levels in tree
-        max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
-        max_depth.append(None)
-
-        # Minimum number of samples required to split a node
-        min_samples_split = [2, 4, 6, 8, 10, 12]
-
-        # Minimum number of samples required at each leaf node
-        min_samples_leaf = [1, 2, 3, 4, 5]
-
-        # Method of selecting samples for training each tree
-        bootstrap = [True, False]
-
-        # Create the random grid
-        random_grid = {'n_estimators': n_estimators,
-                    'max_features': max_features,
-                    'max_depth': max_depth,
-                    'min_samples_split': min_samples_split,
-                    'min_samples_leaf': min_samples_leaf,
-                    'bootstrap': bootstrap}
-
-        rf_random = self.FitFunc.FitRandomForest(paramGrid=random_grid, train_predictors=train_predictors, train_target=train_target)
-
-        base_model = self.FitFunc.FitRandomForest(train_predictors=train_predictors, train_target=train_target)
-        base_accuracy = self.FitFunc.evaluate(base_model, test_predictors, test_target.values.ravel())
-
-        best_random = rf_random.best_estimator_
-        random_accuracy = self.FitFunc.evaluate(best_random, test_predictors, test_target.values.ravel())
-
-        print('Improvement of {:0.2f}%.'.format( 100 * (random_accuracy - base_accuracy) / base_accuracy))
-
-        ## Fine tune hyperparameters with Grid Search
-
-        param_grid = {
-            'n_estimators': [400, 600, 800, 1000, 1200],
-            'max_features': ['auto'],
-            'min_samples_split': [8, 10, 12],
-            'min_samples_leaf': [1, 2, 3],
-            'max_depth': [60, 70, 80, 90, 100],
-            'bootstrap': [False]
-        }
-
-        grid_search = self.FitFunc.FitRandomForest(paramGrid=param_grid, train_predictors=train_predictors, train_target=train_target, searchType="Grid")
-        best_grid = grid_search.best_estimator_
-        grid_accuracy = self.FitFunc.evaluate(best_grid, test_predictors, test_target.values.ravel())
-
-        print('Improvement of {:0.2f}%.'.format( 100 * (grid_accuracy - base_accuracy) / base_accuracy))
+        # predictions = lr_model.transform(testMLDF)
+        # predictions.select("prediction","atmosphereCO2","features").show()
 
         return
 
 ###################################################################
 ###################################################################
 
+    def RunDecisionTree(self, trainMLDF, testMLDF):
 
+        self.FitDecisionTree(trainMLDF, testMLDF)
+
+        dt_maxDepth_array = [10,20,30]
+        dt_maxBins_array = [32,34,36]
+        dt_minInstancesPerNode_array = [1,2,3]
+
+        dt_results_array = [] # minInstancesPerNode, maxDepth, maxBins, rmse
+
+        for i in range(0, len(dt_maxDepth_array)):
+            for j in range(0, len(dt_maxBins_array)):
+                for k in range(0, len(dt_minInstancesPerNode_array)):
+                    dt_maxDepth = dt_maxDepth_array[i]
+                    dt_maxBins = dt_maxBins_array[j]
+                    dt_minInstancesPerNode = dt_minInstancesPerNode_array[k]
+
+                    dt_params = {
+                        "maxDepth":dt_maxDepth,
+                        "maxBins":dt_maxBins,
+                        "minInstancesPerNode":dt_minInstancesPerNode
+                    }
+
+                    dt_results_array.append(self.FitDecisionTree(trainMLDF, testMLDF, dt_params))
+
+                    del dt_maxDepth
+                    del dt_maxBins
+                    del dt_minInstancesPerNode
+                    del dt_params
+
+        for i in range(0,len(dt_results_array)):
+            print(dt_results_array[i])
+
+        return
+
+
+###################################################################
+###################################################################
+
+    def FitDecisionTree(self, trainMLDF, testMLDF, params={}):
+
+        print("Running Decision Tree.....")
+
+        if bool(params):
+            print("Fitting with maxDepth = " + str(params["maxDepth"]) + ", maxBins = " + str(params["maxBins"]) + ", minInstancesPerNode = " + str(params["minInstancesPerNode"]) + " ...")
+            dt = DecisionTreeRegressor(featuresCol ='features', labelCol = 'atmosphereCO2', maxDepth=params["maxDepth"], maxBins = params["maxBins"], minInstancesPerNode = params["minInstancesPerNode"])
+        else:
+            print("Fitting with default parameters...")
+            dt = DecisionTreeRegressor(featuresCol ='features', labelCol = 'atmosphereCO2')
+
+        # dt_paramGrid = ParamGridBuilder()\
+        #     .addGrid(dt.maxDepth, [10,20,30]) \
+        #     .build()
+
+        dt_pipeline = Pipeline(stages=[dt])
+        dt_evaluator = RegressionEvaluator(labelCol="atmosphereCO2", predictionCol="prediction", metricName="rmse")
+
+        dt_model = dt_pipeline.fit(trainMLDF)
+        dt_predictions = dt_model.transform(testMLDF)
+        dt_rmse = dt_evaluator.evaluate(dt_predictions)
+        # print("Decision Tree Default Parameters: ")
+
+        # dt_params = dt_model.stages[0].params
+        # for i in range(0,len(dt_params)):
+        #     print(dt_params[i])
+        #     print(type(dt_params[i]))
+
+        treeModel = dt_model.stages[0]
+
+        dt_paramMap = treeModel.extractParamMap()
+
+        for key in dt_paramMap.keys():
+            # print(key.name, dt_paramMap[key])
+
+            if key.name in ['minInstancesPerNode']:
+                minInstancesPerNode = dt_paramMap[key]
+            if key.name in ['maxDepth']:
+                maxDepth = dt_paramMap[key]
+            if key.name in ['maxBins']:
+                maxBins = dt_paramMap[key]
+            if bool(params)==False:
+                if key.name in ['minInstancesPerNode', 'maxDepth', 'maxBins']:
+                    print(key.name, dt_paramMap[key])
+                    print(key.doc)
+
+        print("Decision Tree Root Mean Squared Error (RMSE) on test data = %g" % dt_rmse)
+        selected = dt_predictions.select("prediction","atmosphereCO2","features")
+
+        # Print presiction row by row
+        # for row in selected.collect():
+        #     print(row)
+
+        return [minInstancesPerNode, maxDepth, maxBins, dt_rmse]
+
+###################################################################
+###################################################################
+
+    def RunGradientBoostedTree(self, trainMLDF, testMLDF):
+
+        self.FitGradientBoostedTree(trainMLDF, testMLDF)
+
+        # Best parameters after running the following
+        # 1	10	36	25	0.05	1	37921.1148178837
+
+        # [minInstancesPerNode, maxDepth, maxBins, maxIter, stepSize, subsamplingRate, gbt_rmse]
+
+        gbt_maxDepth_array = [10]
+        gbt_maxBins_array = [36]
+        gbt_minInstancesPerNode_array = [1]
+        gbt_maxIter_array = [25]
+        gbt_stepSize_array = [0.05]
+        gbt_subsamplingRate_array = [1.0]
+
+        # gbt_maxDepth_array = [10,20,30]
+        # gbt_maxBins_array = [32,34,36]
+        # gbt_minInstancesPerNode_array = [1,2,3]
+        # gbt_maxIter_array = [20, 25, 30]
+        # gbt_stepSize_array = [0.05, 0.1, 0.2]
+        # gbt_subsamplingRate_array = [0.4, 0.8, 1.0]
+
+        gbt_results_array = [] # minInstancesPerNode, maxDepth, maxBins, rmse
+
+        for i in range(0, len(gbt_maxDepth_array)):
+            for j in range(0, len(gbt_maxBins_array)):
+                for k in range(0, len(gbt_minInstancesPerNode_array)):
+                    for l in range(0, len(gbt_maxIter_array)):
+                        for m in range(0, len(gbt_stepSize_array)):
+                            for n in range(0, len(gbt_subsamplingRate_array)):
+                                gbt_maxDepth = gbt_maxDepth_array[i]
+                                gbt_maxBins = gbt_maxBins_array[j]
+                                gbt_minInstancesPerNode = gbt_minInstancesPerNode_array[k]
+                                gbt_maxIter = gbt_maxIter_array[l]
+                                gbt_stepSize = gbt_stepSize_array[m]
+                                gbt_subsamplingRate = gbt_subsamplingRate_array[n]
+
+                                gbt_params = {
+                                    "maxDepth":gbt_maxDepth,
+                                    "maxBins":gbt_maxBins,
+                                    "minInstancesPerNode":gbt_minInstancesPerNode,
+                                    "maxIter":gbt_maxIter,
+                                    "stepSize":gbt_stepSize,
+                                    "subsamplingRate":gbt_subsamplingRate
+                                }
+
+                                gbt_results_array.append(self.FitGradientBoostedTree(trainMLDF, testMLDF, gbt_params))
+
+                                del gbt_maxDepth
+                                del gbt_maxBins
+                                del gbt_minInstancesPerNode
+                                del gbt_maxIter
+                                del gbt_stepSize
+                                del gbt_subsamplingRate
+                                del gbt_params
+
+        for i in range(0,len(gbt_results_array)):
+            print(gbt_results_array[i])
+
+        return
+
+###################################################################
+###################################################################
+
+    def FitGradientBoostedTree(self, trainMLDF, testMLDF, params={}):
+
+        print("Running Gradient Boosted Tree.....")
+
+        if bool(params):
+            print("Fitting with maxDepth = " + str(params["maxDepth"]) + ", maxBins = " + str(params["maxBins"]) + ", minInstancesPerNode = " + str(params["minInstancesPerNode"]) + " ...")
+            print("maxIter = " + str(params["maxIter"]) + ", stepSize = " + str(params["stepSize"]) + ", subsamplingRate = " + str(params["subsamplingRate"]) + " ...")
+            gbt = GBTRegressor(featuresCol ='features', labelCol = 'atmosphereCO2', maxDepth=params["maxDepth"], maxBins = params["maxBins"], minInstancesPerNode = params["minInstancesPerNode"], maxIter=params["maxIter"], stepSize=params["stepSize"], subsamplingRate=params["subsamplingRate"])
+        else:
+            print("Fitting with default parameters...")
+            gbt = GBTRegressor(featuresCol = 'features', labelCol = 'atmosphereCO2')
+
+        gbt_pipeline = Pipeline(stages=[gbt])
+        gbt_evaluator = RegressionEvaluator(labelCol="atmosphereCO2", predictionCol="prediction", metricName="rmse")
+
+        gbt_model = gbt_pipeline.fit(trainMLDF)
+        gbt_predictions = gbt_model.transform(testMLDF)
+        # gbt_predictions.select('prediction', 'atmosphereCO2', 'features').show(5)
+        if bool(params)==False:
+            print("Gradient Boosted Tree Default Parameters: ")
+
+        gbt_treeModel = gbt_model.stages[0]
+
+        gbt_paramMap = gbt_treeModel.extractParamMap()
+        for key in gbt_paramMap.keys():
+
+            # print(key.name, dt_paramMap[key])
+            # if bool(params):
+            if key.name in ['minInstancesPerNode']:
+                minInstancesPerNode = gbt_paramMap[key]
+            if key.name in ['maxDepth']:
+                maxDepth = gbt_paramMap[key]
+            if key.name in ['maxBins']:
+                maxBins = gbt_paramMap[key]
+            if key.name in ['maxIter']:
+                maxIter = gbt_paramMap[key]
+            if key.name in ['stepSize']:
+                stepSize = gbt_paramMap[key]
+            if key.name in ['subsamplingRate']:
+                subsamplingRate = gbt_paramMap[key]
+
+            if bool(params)==False:
+                if key.name in ['minInstancesPerNode', 'maxDepth', 'stepSize', 'maxIter', 'maxBins', 'subsamplingRate']:
+                    print(key.name, gbt_paramMap[key])
+                # if key.name in ['subsamplingRate']:
+                    print(key.doc)
+
+
+        gbt_rmse = gbt_evaluator.evaluate(gbt_predictions)
+        print("Gradient Boosted Trees Root Mean Squared Error (RMSE) on test data = %g" % gbt_rmse)
+
+        return [minInstancesPerNode, maxDepth, maxBins, maxIter, stepSize, subsamplingRate, gbt_rmse]
+
+###################################################################
+###################################################################
 
 if __name__ == "__main__":
 
