@@ -684,8 +684,26 @@ A summary of performance comparison between the tested models are presented in T
     \end{center}
 \end{table}
 
-This comparison of performance shows the both of the machine learning methods produce predictions that are more accurate than the linear regression method by an order of magnitude, while Gradient Boosted Tree, provide the most accurate prediction out of all three. Following on from this work, more models such as Neural Networks or XGBoost can be examined to determine whether a more precise prediction can be obtained, as well as attempting to drop some predictors in the linear regression approach to see if it can perform better.
+This comparison of performance shows the both of the machine learning methods produce predictions that are more accurate than the linear regression method by an order of magnitude, while Gradient Boosted Tree, provide the most accurate prediction out of all three. Figures \ref{fig:atmosphereCO2_test_GBT_MAPE} and \ref{fig:atmosphereCO2_test_DT_MAPE} respectively show the percentage error for Gradient Boosted Tree and Decision Tree methods, where the noticeable difference in accuracy between the two methods are displayed.
 
-All data and source codes of this analysis can be found at \href{https://github.com/jasonyctam/-WorldBankClimateChange_PySpark}{this Github repository}.
+\begin{figure}[!htbp]
+    \begin{center}
+        \includegraphics[width=\textwidth]{../Plots/atmosphereCO2_test_GBT_MAPE.png}
+        \caption{Percentage Error from the Gradient Boosted Tree analysis.}
+        \label{fig:atmosphereCO2_test_GBT_MAPE}
+    \end{center}
+\end{figure}
+
+\begin{figure}[!htbp]
+    \begin{center}
+        \includegraphics[width=\textwidth]{../Plots/atmosphereCO2_test_DT_MAPE.png}
+        \caption{Percentage Error from the Decision Tree analysis.}
+        \label{fig:atmosphereCO2_test_DT_MAPE}
+    \end{center}
+\end{figure}
+
+It can be seen that most of the predictions made by the tuned Decision Tree algorithm are within one percent accurancy, with nothing surpassing four percent. Aside from achieving the best performance out of the three methods, we can also conclude that it provides quite a good level of prediction accuracy for the CO$_{2}$ emissions with the selected set of predictors. Following on from this work, more models such as Neural Networks or XGBoost can be examined to determine whether a more precise prediction can be obtained, as well as attempting to drop some predictors in the linear regression approach to see if it can perform better.
+
+All data and source codes of this analysis can be found at \href{https://github.com/jasonyctam/WorldBankClimateChange_PySpark}{this Github repository}.
 
 \end{document}

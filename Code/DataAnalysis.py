@@ -132,9 +132,19 @@ class DataAnalysis():
         resultsDF['DT_Res'] = dt_DF['prediction'] - dt_DF['atmosphereCO2']
         resultsDF['GBT_Res'] = gbt_DF['prediction'] - gbt_DF['atmosphereCO2']
 
+        resultsDF['LR_MAPE'] = resultsDF['LR_Res']/resultsDF['atmosphereCO2']
+        resultsDF['DT_MAPE'] = resultsDF['DT_Res']/resultsDF['atmosphereCO2']
+        resultsDF['GBT_MAPE'] = resultsDF['GBT_Res']/resultsDF['atmosphereCO2']
 
         self.plotData.plotResultGraph(resultsDF.index.values, [resultsDF['LR_Res'], resultsDF['DT_Res'], resultsDF['GBT_Res']], title="atmosphereCO2 2014", xlabel="Country", ylabel="atmosphereCO2", legendLabel=["LR_test_Residue", "DT_test_Residue", "GBT_test_Residue"], outputFileName="atmosphereCO2_test_residue.png", tilt=False, xTickRotation=30)
 
+        # self.plotData.plotResultGraph(resultsDF.index.values, [resultsDF['LR_MAPE'], resultsDF['DT_MAPE'], resultsDF['GBT_MAPE']], title="atmosphereCO2 2014", xlabel="Country", ylabel="Percentage", legendLabel=["LR_test_MAPE", "DT_test_MAPE", "GBT_test_MAPE"], outputFileName="atmosphereCO2_test_MAPE.png", tilt=False, xTickRotation=30)
+
+        self.plotData.plotResultGraph(resultsDF.index.values, [resultsDF['DT_MAPE'], resultsDF['GBT_MAPE']], title="atmosphereCO2 2014", xlabel="Country", ylabel="Percentage", legendLabel=["DT_test_MAPE", "GBT_test_MAPE"], outputFileName="atmosphereCO2_test_MAPE.png", tilt=False, xTickRotation=30)
+
+        self.plotData.plotResultGraph(resultsDF.index.values, [resultsDF['DT_MAPE']], title="atmosphereCO2 2014", xlabel="Country", ylabel="Percentage", legendLabel=["DT_test_MAPE"], outputFileName="atmosphereCO2_test_DT_MAPE.png", tilt=False, xTickRotation=30)
+
+        self.plotData.plotResultGraph(resultsDF.index.values, [resultsDF['GBT_MAPE']], title="atmosphereCO2 2014", xlabel="Country", ylabel="Percentage", legendLabel=["GBT_test_MAPE"], outputFileName="atmosphereCO2_test_GBT_MAPE.png", tilt=False, xTickRotation=30)
 
         # self.plotData.plotGraph(combineDF['landForest'], combineDF['atmosphereCO2'], title="atmosphereCO2 VS landForest", xlabel="landForest", ylabel="atmosphereCO2", legendLabel1="Countries", outputFileName="atmosphereCO2_VS_landForest.png", time=False)
 
